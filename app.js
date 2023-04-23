@@ -16,12 +16,14 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const orderRoutes = require('./routes/order');
 const itemRoutes = require('./routes/item');
+const cartRoutes = require('./routes/cart');
 
 // Use routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 app.use('/orders', orderRoutes);
 app.use('/items', itemRoutes);
+app.use('/api', cartRoutes);
 
 
 

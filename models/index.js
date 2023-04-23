@@ -27,6 +27,7 @@ if (config.use_env_variable) {
     {
       host: process.env.DB_HOST,
       dialect: config.dialect,
+      // other options
     }
   );
   

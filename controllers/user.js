@@ -1,13 +1,15 @@
 const { User } = require('../models');
+const { sendResponse } = require('../helpers/responseHelper');
 
 const getAllUsers = async (req, res) => {
+  
   try {
     const users = await User.findAll({
       attributes: ['id', 'email'],
     });
-    res.status(200).json(users);
+    sendResponse(res, 200, true, null, users);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching users', error: err.message });
+    sendResponse(res, 500, false, 'Error fetching users', err.message);
   }
 };
 
@@ -18,12 +20,12 @@ const getUserById = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendResponse(res, 404, false, 'User not found', null);
     }
 
-    res.status(200).json(user);
+    sendResponse(res, 200, true, null, user);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching user', error: err.message });
+    sendResponse(res, 500, false, 'Error fetching user', err.message);
   }
 };
 

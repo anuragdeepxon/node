@@ -1,15 +1,15 @@
 const express = require('express');
 const { authMiddleware, roleMiddleware } = require('../middlewares/auth');
 const {
-  getItemsByRestaurant,
+  getItems,
   createItem,
   updateItem,
   deleteItem,
 } = require('../controllers/item');
 const router = express.Router();
 
-// Get all items for a restaurant
-router.get('/restaurant/:id', getItemsByRestaurant);
+// Get all items
+router.get('/', getItems);
 
 // Create a new item
 router.post('/', [authMiddleware, roleMiddleware(['admin'])], createItem);

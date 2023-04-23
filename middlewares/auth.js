@@ -1,20 +1,26 @@
 const jwt = require('jsonwebtoken');
+const { sendResponse } = require('../helpers/responseHelper');
+const { User } = require('../models'); 
 
 const roleMiddleware = (allowedRoles) => {
-    return (req, res, next) => {
-        if (req.user && allowedRoles.includes(req.user.role)) {
-            next();
-        } else {
-            res.status(403).json({ message: 'Forbidden' });
-        }
+    return async (req, res, next) => {
+      const user = await User.findByPk(req.user.userId, {
+        attributes: ['id', 'role'],
+      });
+  
+      if (user && allowedRoles.includes(user.role)) {
+        next();
+      } else {
+        sendResponse(res, 403, false, 'Forbidden', null);
+      }
     };
-};
+  };
 
 const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization')?.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: 'Access denied. No token provided.' });
+        return sendResponse(res, 401, false, 'Access denied. No token provided.', null);
     }
 
     try {
@@ -22,9 +28,10 @@ const authMiddleware = (req, res, next) => {
         req.user = { userId: decoded.userId };
         next();
     } catch (err) {
-        res.status(400).json({ message: 'Invalid token' });
+        sendResponse(res, 400, false, 'Invalid token', null);
     }
 };
+
 
 module.exports = {
     authMiddleware,

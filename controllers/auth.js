@@ -5,37 +5,26 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 
+const { sendResponse } = require('../helpers/responseHelper');
+
 const registerUser = async (req, res) => {
   try {
+    const existingUser = await User.findOne({ where: { email: req.body.email } });
+
+    if (existingUser) {
+      return sendResponse(res, 400, false, 'User already exists', null);
+    }
+
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = await User.create({
       email: req.body.email,
       password: hashedPassword,
     });
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    });
-  } catch (err) {
-    res.status(400).json({ message: 'Error registering user', error: err.message });
-  }
-};
-
-const loginUser = async (req, res) => {
-  try {
-    const user = await User.findOne({ where: { email: req.body.email } });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const validPassword = await bcrypt.compare(req.body.password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ message: 'Invalid password' });
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET environment variable is not set');
+      return sendResponse(res, 500, false, 'Internal server error', null);
     }
 
     const token = jwt.sign(
@@ -44,22 +33,67 @@ const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
       },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '1h' }
     );
 
-    res.status(200).json({ message: 'Logged in successfully', token });
+    sendResponse(res, 201, true, 'User registered successfully', {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      token,
+    });
   } catch (err) {
-    res.status(400).json({ message: 'Error logging in', error: err.message });
+    sendResponse(res, 400, false, 'Error registering user', err.message);
   }
 };
+
+
+
+const loginUser = async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { email: req.body.email } });
+
+    if (!user) {
+      return sendResponse(res, 404, false, 'User not found', null);
+    }
+
+    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    if (!validPassword) {
+      return sendResponse(res, 401, false, 'Invalid password', null);
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET environment variable is not set');
+      return sendResponse(res, 500, false, 'Internal server error', null);
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    sendResponse(res, 200, true, 'Logged in successfully', { token });
+  } catch (err) {
+    console.error('Error logging in:', err);
+    sendResponse(res, 400, false, 'Error logging in', err.message);
+  }
+};
+
 
 const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ where: { email: req.body.email } });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendResponse(res, 404, false, 'User not found', null);
     }
 
     const otpGenerator = require('otp-generator');
@@ -70,7 +104,6 @@ const forgotPassword = async (req, res) => {
     // Convert the buffer to a six-digit decimal number
     const token = parseInt(buffer.toString('hex'), 16) % 1000000;
 
-
     await user.update({ otp: token, otpExpires: Date.now() + 3600000 });
 
     const transporter = nodemailer.createTransport({
@@ -80,8 +113,8 @@ const forgotPassword = async (req, res) => {
       secure: false,
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+        pass: process.env.SMTP_PASS,
+      },
     });
 
     const mailOptions = {
@@ -95,13 +128,13 @@ OTP: ${token}
 
     transporter.sendMail(mailOptions, (err) => {
       if (err) {
-        return res.status(500).json({ message: 'Error sending email', error: err.message });
+        return sendResponse(res, 500, false, 'Error sending email', err.message);
       }
 
-      res.status(200).json({ message: 'Reset password email sent' });
+      sendResponse(res, 200, true, 'Reset password email sent', null);
     });
   } catch (err) {
-    res.status(400).json({ message: 'Error processing forgot password request', error: err.message });
+    sendResponse(res, 400, false, 'Error processing forgot password request', err.message);
   }
 };
 
@@ -112,23 +145,23 @@ const verifyOTP = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendResponse(res, 404, false, 'User not found', null);
     }
 
     if (user.otp !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+      return sendResponse(res, 400, false, 'Invalid OTP', null);
     }
 
     if (user.otpExpires < Date.now()) {
-      return res.status(400).json({ message: 'OTP has expired' });
+      return sendResponse(res, 400, false, 'OTP has expired', null);
     }
 
     // Clear the OTP and expiration date
     await user.update({ otp: null, otpExpires: null });
 
-    res.status(200).json({ message: 'OTP verified successfully' });
+    sendResponse(res, 200, true, 'OTP verified successfully', null);
   } catch (err) {
-    res.status(400).json({ message: 'Error processing forgot password request', error: err.message });
+    sendResponse(res, 400, false, 'Error processing forgot password request', err.message);
   }
 };
 
@@ -139,7 +172,7 @@ const updatePassword = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return sendResponse(res, 404, false, 'User not found', null);
     }
 
     // Hash the new password
@@ -149,12 +182,13 @@ const updatePassword = async (req, res) => {
     // Update the user's password
     await user.update({ password: hashedPassword });
 
-    res.status(200).json({ message: 'Password updated successfully' });
+    sendResponse(res, 200, true, 'Password updated successfully', null);
+
   } catch (err) {
-    res.status(400).json({ message: 'Error updating password', error: err.message });
+
+    sendResponse(res, 400, false, 'Error updating password', err.message);
   }
 };
-
 
 
 module.exports = {

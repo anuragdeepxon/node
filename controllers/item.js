@@ -2,13 +2,15 @@ const express = require('express');
 const { Item } = require('../models');
 const router = express.Router();
 
-// Get all items for a restaurant
-const getItemsByRestaurant = async (req, res) => {
+const { sendResponse } = require('../helpers/responseHelper');
+
+// Get all items
+const getItems = async (req, res) => {
   try {
-    const items = await Item.findAll({ where: { restaurantId: req.params.id } });
-    res.status(200).json(items);
+    const items = await Item.findAll();
+    sendResponse(res, 200, true, 'Items fetched successfully', items);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching items', error: err.message });
+    sendResponse(res, 500, false, 'Error fetching items', err.message);
   }
 };
 
@@ -17,7 +19,6 @@ const createItem = async (req, res) => {
     const item = await Item.create({
       name: req.body.name,
       price: req.body.price,
-      restaurantId: req.body.restaurantId,
     });
     res.status(201).json(item);
   } catch (err) {
@@ -66,7 +67,7 @@ const deleteItem = async (req, res) => {
 };
 
 module.exports = {
-  getItemsByRestaurant,
+  getItems,
   createItem,
   updateItem,
   deleteItem,
