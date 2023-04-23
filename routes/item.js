@@ -12,12 +12,12 @@ const router = express.Router();
 router.get('/restaurant/:id', getItemsByRestaurant);
 
 // Create a new item
-router.post('/', authMiddleware, createItem);
+router.post('/', [authMiddleware, roleMiddleware(['admin'])], createItem);
 
 // Update an item by id
-router.put('/:id', authMiddleware, updateItem);
+router.put('/:id', [authMiddleware, roleMiddleware(['admin'])], updateItem);
 
 // Delete an item by id
-router.delete('/:id', authMiddleware, deleteItem);
+router.delete('/:id', [authMiddleware, roleMiddleware(['admin'])], deleteItem);
 
 module.exports = router;

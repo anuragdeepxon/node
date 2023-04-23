@@ -14,14 +14,12 @@ app.use(express.urlencoded({ extended: true }));
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
-const restaurantRoutes = require('./routes/restaurant');
 const orderRoutes = require('./routes/order');
 const itemRoutes = require('./routes/item');
 
 // Use routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
-app.use('/restaurants', restaurantRoutes);
 app.use('/orders', orderRoutes);
 app.use('/items', itemRoutes);
 
