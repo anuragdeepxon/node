@@ -18,6 +18,13 @@ module.exports = {
       role: {
         type: Sequelize.STRING
       },
+      otp: {
+        type: Sequelize.STRING
+      },
+      otpExpires:{
+        allowNull: true,
+        type: Sequelize.DATE
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

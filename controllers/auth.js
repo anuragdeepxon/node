@@ -62,15 +62,26 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    await user.update({ resetPasswordToken: token, resetPasswordExpires: Date.now() + 3600000 });
+    const otpGenerator = require('otp-generator');
+
+    // Generate a buffer with 3 bytes of random data
+    const buffer = crypto.randomBytes(3);
+
+    // Convert the buffer to a six-digit decimal number
+    const token = parseInt(buffer.toString('hex'), 16) % 1000000;
+
+
+    await user.update({ otp: token, otpExpires: Date.now() + 3600000 });
 
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
     });
 
     const mailOptions = {
@@ -78,9 +89,8 @@ const forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       subject: 'Password Reset',
       text: `You are receiving this because you (or someone else) requested a password reset for your account.
-Please click on the following link, or paste it into your browser to complete the process:
-http://${req.headers.host}/auth/reset-password/${token}
-If you did not request this, please ignore this email and your password will remain unchanged.`,
+OTP: ${token}
+`,
     };
 
     transporter.sendMail(mailOptions, (err) => {
@@ -95,32 +105,62 @@ If you did not request this, please ignore this email and your password will rem
   }
 };
 
-
-const resetPassword = async (req, res) => {
+const verifyOTP = async (req, res) => {
   try {
-    const user = await User.findOne({
-      where: {
-        resetPasswordToken: req.params.token,
-        resetPasswordExpires: { [Op.gt]: Date.now() },
-      },
-    });
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ message: 'Password reset token is invalid or has expired' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    await user.update({ password: hashedPassword, resetPasswordToken: null, resetPasswordExpires: null });
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
 
-    res.status(200).json({ message: 'Password has been reset successfully' });
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    // Clear the OTP and expiration date
+    await user.update({ otp: null, otpExpires: null });
+
+    res.status(200).json({ message: 'OTP verified successfully' });
   } catch (err) {
-    res.status(400).json({ message: 'Error resetting password', error: err.message });
+    res.status(400).json({ message: 'Error processing forgot password request', error: err.message });
   }
 };
+
+const updatePassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update the user's password
+    await user.update({ password: hashedPassword });
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(400).json({ message: 'Error updating password', error: err.message });
+  }
+};
+
+
 
 module.exports = {
   registerUser,
   loginUser,
   forgotPassword,
-  resetPassword,
+  verifyOTP,
+  updatePassword
 };

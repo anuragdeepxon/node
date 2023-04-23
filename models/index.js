@@ -1,4 +1,5 @@
 'use strict';
+require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
@@ -6,7 +7,8 @@ const Sequelize = require('sequelize');
 const dotenv = require('dotenv');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const config = require(__dirname + '/../config/config.js')[env];
+
 const db = {};
 
 dotenv.config();
@@ -25,7 +27,6 @@ if (config.use_env_variable) {
     {
       host: process.env.DB_HOST,
       dialect: config.dialect,
-      // other options
     }
   );
   

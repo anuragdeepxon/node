@@ -21,6 +21,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'user',
     },
+    otp: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    otpExpires:
+    {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    },
   }, {
     sequelize,
     modelName: 'User',
