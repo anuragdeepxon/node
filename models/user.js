@@ -20,6 +20,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: 'user',
+      isIn: [['user', 'admin']]
     },
     otp: {
       type: DataTypes.STRING,
