@@ -1,12 +1,23 @@
 const express = require('express');
-const { getAllItems, createItem, getItemById, updateItem, deleteItem } = require('../controllers/item');
-const { authMiddleware, roleMiddleware } = require('../middleware/auth');
+const { authMiddleware } = require('../middlewares/auth');
+const {
+  getItemsByRestaurant,
+  createItem,
+  updateItem,
+  deleteItem,
+} = require('../controllers/item');
 const router = express.Router();
 
-router.get('/', getAllItems);
-router.post('/', [authMiddleware, roleMiddleware(['admin'])], createItem);
-router.get('/:id', getItemById);
-router.put('/:id', [authMiddleware, roleMiddleware(['admin'])], updateItem);
-router.delete('/:id', [authMiddleware, roleMiddleware(['admin'])], deleteItem);
+// Get all items for a restaurant
+router.get('/restaurant/:id', getItemsByRestaurant);
+
+// Create a new item
+router.post('/', authMiddleware, createItem);
+
+// Update an item by id
+router.put('/:id', authMiddleware, updateItem);
+
+// Delete an item by id
+router.delete('/:id', authMiddleware, deleteItem);
 
 module.exports = router;

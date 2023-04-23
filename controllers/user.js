@@ -1,10 +1,6 @@
-const express = require('express');
 const { User } = require('../models');
-const { authMiddleware } = require('../middleware/auth');
-const router = express.Router();
 
-// Get all users
-router.get('/', authMiddleware, async (req, res) => {
+const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: ['id', 'email'],
@@ -13,10 +9,9 @@ router.get('/', authMiddleware, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Error fetching users', error: err.message });
   }
-});
+};
 
-// Get a specific user by id
-router.get('/:id', authMiddleware, async (req, res) => {
+const getUserById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id, {
       attributes: ['id', 'email'],
@@ -30,6 +25,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Error fetching user', error: err.message });
   }
-});
+};
 
-module.exports = router;
+module.exports = {
+  getAllUsers,
+  getUserById,
+};

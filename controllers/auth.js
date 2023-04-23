@@ -1,15 +1,11 @@
-const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
-const router = express.Router();
-
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const { Op } = require('sequelize');
 
-
-// Register
-router.post('/register', async (req, res) => {
+const registerUser = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = await User.create({
@@ -27,10 +23,9 @@ router.post('/register', async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: 'Error registering user', error: err.message });
   }
-});
+};
 
-// Login
-router.post('/login', async (req, res) => {
+const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ where: { email: req.body.email } });
 
@@ -57,11 +52,9 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: 'Error logging in', error: err.message });
   }
-});
+};
 
-
-// Forgot password
-router.post('/forgot-password', async (req, res) => {
+const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ where: { email: req.body.email } });
 
@@ -100,10 +93,10 @@ If you did not request this, please ignore this email and your password will rem
   } catch (err) {
     res.status(400).json({ message: 'Error processing forgot password request', error: err.message });
   }
-});
+};
 
-// Reset password
-router.post('/reset-password/:token', async (req, res) => {
+
+const resetPassword = async (req, res) => {
   try {
     const user = await User.findOne({
       where: {
@@ -123,7 +116,11 @@ router.post('/reset-password/:token', async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: 'Error resetting password', error: err.message });
   }
-});
+};
 
-
-module.exports = router;
+module.exports = {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+};

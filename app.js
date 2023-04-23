@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
+
 dotenv.config();
 const { sequelize } = require('./models');
 
@@ -23,6 +24,8 @@ app.use('/users', userRoutes);
 app.use('/restaurants', restaurantRoutes);
 app.use('/orders', orderRoutes);
 app.use('/items', itemRoutes);
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
